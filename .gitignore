@@ -1,0 +1,11 @@
+.DS_Store
+node_modules/
+dist/
+*.zip
+*.log
+.env
+# 테스트용으로 실제 광고 배너를 캡처한 이미지는 저작권·정책 문제로 저장소에 올리지 않는다
+tests/crops/
+tests/site/
+tests/*.png
+*.webp

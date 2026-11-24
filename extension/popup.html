@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<style>
+  body { width: 290px; margin: 0; padding: 14px; font: 13px/1.45 -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: #1c1c1e; }
+  h1 { font-size: 14px; margin: 0 0 10px; }
+  .stat { background: #f3f4f6; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
+  .stat b { font-size: 18px; }
+  .row { display: flex; align-items: center; justify-content: space-between; margin: 8px 0; }
+  select, button { font: inherit; }
+  button { width: 100%; padding: 7px; border: 1px solid #d1d5db; background: #fff; border-radius: 6px; cursor: pointer; margin-top: 4px; }
+  button:hover { background: #f3f4f6; }
+  .hint { color: #6b7280; font-size: 11.5px; margin-top: 8px; }
+</style>
+<h1>도박배너 차단기</h1>
+<div class="stat">이 페이지 <b id="page">0</b>개 숨김 · 누적 <b id="total">0</b>개</div>
+<div class="row"><label for="enabled">차단 사용</label><input type="checkbox" id="enabled"></div>
+<div class="row"><label for="site">이 사이트에서 사용</label><input type="checkbox" id="site"></div>
+<div class="row"><label for="mode">민감도</label>
+  <select id="mode">
+    <option value="conservative">보수적 (오탐 적음)</option>
+    <option value="balanced">균형</option>
+    <option value="aggressive">공격적 (더 많이 차단)</option>
+  </select></div>
+<div class="row"><label for="debug">테스트 모드 (숨기지 않고 빨간 테두리)</label><input type="checkbox" id="debug"></div>
+<button id="pick" style="background:#fff4f4;border-color:#e99">🖱 배너 직접 지우기 (클릭해서 선택)</button>
+<button id="report">테스트 리포트 복사</button>
+<button id="restore">이 페이지 복구 (오탐일 때)</button>
+<div class="stat" style="margin-top:10px">학습한 배너 <b id="known">0</b>개 <span class="hint" id="kauto"></span></div>
+<div class="hint" style="margin:0 0 4px">확실히 차단한 배너는 스스로 기억하고, 놓친 배너는 이미지에서 <b>우클릭 → 도박 배너로 신고</b>. 오탐은 아래 '복구'를 누르면 다시 안 막습니다. (기기 안에만 저장)</div>
+<button id="kexport">학습 목록 내보내기 (복사)</button>
+<button id="kimport">학습 목록 가져오기</button>
+<div id="kbox" style="display:none">
+  <textarea id="ktext" placeholder="KBL1:… 붙여넣기" style="width:100%;height:70px;font-size:11px;margin-top:4px;box-sizing:border-box"></textarea>
+  <button id="kgo">가져오기 실행</button>
+</div>
+<button id="kclear">학습 초기화</button>
+<div class="hint" id="msg"></div>
+<div class="hint">이미지는 기기 안에서만 분석되며 외부로 전송되지 않습니다.</div>
+<script src="popup.js"></script>

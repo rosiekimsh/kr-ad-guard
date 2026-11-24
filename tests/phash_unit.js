@@ -1,0 +1,20 @@
+// node tests/phash_unit.js — 지각 해시의 기본 성질(합성 데이터): 약한 잡음엔 가깝고, 다른 이미지와는 멀다
+const P = require('../extension/phash.js');
+let seed = 12345;
+const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+const make = () => Array.from({ length: 72 }, () => rnd() * 255);
+let fail = 0;
+const chk = (ok, msg) => { if (!ok) { fail++; console.log('FAIL', msg); } };
+const a = make();
+const ha = P.dhashFromGray(a);
+chk(/^[0-9a-f]{16}$/.test(ha), '해시 형식');
+chk(P.hamming(ha, ha) === 0, '자기 자신과 거리 0');
+chk(P.hamming(ha, P.dhashFromGray(a.map((v) => v * 0.8 + 10))) === 0, '밝기·대비 선형 변화에 불변');
+chk(P.hamming(ha, P.dhashFromGray(a.map((v) => v + (rnd() - 0.5) * 4))) <= 6, '약한 잡음에 가까움');
+let minDiff = 64;
+for (let i = 0; i < 50; i++) minDiff = Math.min(minDiff, P.hamming(ha, P.dhashFromGray(make())));
+chk(minDiff >= 10, `서로 다른 이미지와 충분히 멂 (최소 ${minDiff})`);
+chk(!P.usable('0000000000000000') && !P.usable('ffffffffffffffff'), '단색(해시 0/1만)은 사용 불가');
+chk(P.isHash('0123456789abcdef') && !P.isHash('xyz') && !P.isHash('0123456789abcdeF'), 'isHash 검증');
+console.log(fail ? `${fail} 실패` : '해시 단위 테스트 전부 통과');
+process.exit(fail ? 1 : 0);
