@@ -12,3 +12,6 @@
 - 테스트에 **실제 광고 이미지를 넣지 마세요**(저작권·정책 문제). 합성 문자열이나 직접 만든 이미지를 쓰세요.
 - 이미지·방문기록을 외부로 보내는 기능은 받지 않습니다(온디바이스 원칙).
 - 합법 사행성·뉴스·정상 광고가 오탐되지 않는지 항상 확인해 주세요.
+
+---
+**English:** To report a missed banner or false positive, copy the test report from the popup and paste it into a new issue. Do **not** post real gambling/adult site URLs, ad images or personal data. Code changes to `extension/scoring.js` must pass `npm test`; do not add real ad images to tests (copyright/policy); keep processing on-device (no sending images or browsing history anywhere).
