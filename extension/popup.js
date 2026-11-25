@@ -42,7 +42,7 @@ async function main() {
     }
   };
   const refreshKnown = async () => {
-    try { const r = await chrome.runtime.sendMessage({ type: 'KB_KNOWN_STATE' }); $('known').textContent = r ? r.count : 0; $('kauto').textContent = r && r.auto ? `(자동 ${r.auto}개)` : ''; } catch (_) {}
+    try { const r = await chrome.runtime.sendMessage({ type: 'KB_KNOWN_STATE' }); $('known').textContent = r ? r.count : 0; $('kauto').textContent = [r && r.auto ? `자동 ${r.auto}개` : '', r && r.seed ? `기본 내장 ${r.seed}개` : ''].filter(Boolean).join(', ').replace(/^(.+)$/, '($1)'); } catch (_) {}
   };
   refreshKnown();
   $('kexport').onclick = async () => {

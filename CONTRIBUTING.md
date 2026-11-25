@@ -15,3 +15,7 @@
 
 ---
 **English:** To report a missed banner or false positive, copy the test report from the popup and paste it into a new issue. Do **not** post real gambling/adult site URLs, ad images or personal data. Code changes to `extension/scoring.js` must pass `npm test`; do not add real ad images to tests (copyright/policy); keep processing on-device (no sending images or browsing history anywhere).
+
+
+## 기본 내장 목록에 기여하기
+막히지 않던 배너를 직접 지우거나 신고한 뒤 팝업의 **학습 목록 내보내기**로 나온 `KBL1:…` 텍스트를 이슈로 보내 주세요(해시만 들어 있고 이미지·주소·방문기록은 없습니다). 운영자는 `node scripts/build-seed.js 받은파일.txt`로 `extension/seed.json`에 합쳐 다음 버전에 넣습니다. 정상 이미지가 섞이지 않도록, 보내기 전에 오탐 없이 쓰던 목록인지 확인해 주세요.

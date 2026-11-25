@@ -8,12 +8,12 @@ It reads the text inside banner images with **on-device OCR**, so it can catch b
 🔒 **No server · no account · no tracking** — images and browsing history never leave your computer.
 🧠 **Gets better as you use it** — remove a missed banner once and it stays gone.
 
-> ⚠️ **Beta.** It can miss some banners and, rarely, hide a legitimate image. If that happens, press **Restore this page** in the popup.
+> 💡 If a banner is missed or a legitimate image gets hidden, press **Restore this page** or use **Remove a banner manually** in the popup.
 
 > The detection vocabulary is Korean (e.g. first-deposit bonus terms, Korean brand-style phrases), so it is designed for **Korean-language sites**.
 
 ## Install (1 minute, Chrome)
-1. Download `kr-ad-guard-v0.5.1.zip` from [**Releases**](../../releases/latest) and **unzip** it.
+1. Download `kr-ad-guard-v0.6.0.zip` from [**Releases**](../../releases/latest) and **unzip** it.
 2. Open `chrome://extensions` and turn on **Developer mode** (top right).
 3. Click **Load unpacked** and select the unzipped folder. Done!
 

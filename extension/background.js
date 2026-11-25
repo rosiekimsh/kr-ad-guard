@@ -85,13 +85,21 @@ const KNOWN_DIST = 9; // 64비트 중 이만큼까지 다르면 같은 배너로
 const AUTO_KEY = 'kbAuto', SAFE_KEY = 'kbSafe';
 const AUTO_MAX = 2000, SAFE_MAX = 1000;
 const LEARN_SCORE = 9; // OCR 점수가 이 이상(강한 키워드 3개 안팎)일 때만 스스로 학습
-let known = null, auto = [], safe = [];
+let known = null, auto = [], safe = [], seed = [];
+// 기본 내장 목록(seed.json): 배포 때 함께 들어가는 확인된 불법 배너 해시. 읽기 전용이고 '복구'(정상 목록)가 항상 우선한다
+async function loadSeed() {
+  try {
+    const j = await (await fetch(chrome.runtime.getURL('seed.json'))).json();
+    seed = (j && Array.isArray(j.hashes) ? j.hashes : []).filter(PH.isHash);
+  } catch (_) { seed = []; }
+}
 async function loadKnown() {
   if (!known) {
     const o = await chrome.storage.local.get([KNOWN_KEY, AUTO_KEY, SAFE_KEY]);
     known = (o[KNOWN_KEY] || []).filter(PH.isHash);
     auto = (o[AUTO_KEY] || []).filter(PH.isHash);
     safe = (o[SAFE_KEY] || []).filter(PH.isHash);
+    await loadSeed();
   }
   return known;
 }
@@ -107,7 +115,7 @@ async function saveKnown(resetCache = true) {
 }
 const near = (list, h, d) => list.some((k) => PH.hamming(k, h) <= d);
 function matchKnown(h) {
-  return PH.usable(h) && (near(known, h, KNOWN_DIST) || near(auto, h, KNOWN_DIST));
+  return PH.usable(h) && (near(known, h, KNOWN_DIST) || near(auto, h, KNOWN_DIST) || near(seed, h, KNOWN_DIST));
 }
 function matchSafe(h) {
   return PH.usable(h) && near(safe, h, KNOWN_DIST);
@@ -197,7 +205,7 @@ async function handleOcr(msg) {
   await loadKnown();
   if (msg.hashOnly) { // 배너 비율이 아닌 링크 이미지: OCR 없이 학습 목록과만 대조(미일치는 캐시하지 않음)
     const none = { ok: true, score: 0, hits: [], text: '' };
-    if (!known.length && !auto.length && !safe.length) return none;
+    if (!known.length && !auto.length && !seed.length && !safe.length) return none;
     const hr = await askOffscreen({ op: 'hash', url: msg.url });
     if (hr.ok && !matchSafe(hr.hash) && matchKnown(hr.hash)) {
       c.set(key, { s: 99, h: ['학습목록'], x: '', t: Date.now() });
@@ -206,7 +214,7 @@ async function handleOcr(msg) {
     }
     return none;
   }
-  if (known.length || auto.length || safe.length) { // 학습 목록과 먼저 대조(저렴): 정상 목록이면 통과, 일치하면 OCR 없이 확정
+  if (known.length || auto.length || seed.length || safe.length) { // 학습 목록과 먼저 대조(저렴): 정상 목록이면 통과, 일치하면 OCR 없이 확정
     const hr = await askOffscreen({ op: 'hash', url: msg.url });
     if (hr.ok && matchSafe(hr.hash)) return { ok: true, score: 0, hits: ['정상목록'], text: '' };
     if (hr.ok && matchKnown(hr.hash)) {
@@ -316,7 +324,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       .catch(() => {});
     return false;
   }
-  if (msg.type === 'KB_KNOWN_STATE') { loadKnown().then((k) => sendResponse({ count: k.length + auto.length, auto: auto.length, safe: safe.length })); return true; }
+  if (msg.type === 'KB_KNOWN_STATE') { loadKnown().then((k) => sendResponse({ count: k.length + auto.length, auto: auto.length, safe: safe.length, seed: seed.length })); return true; }
   if (msg.type === 'KB_KNOWN_EXPORT') { loadKnown().then((k) => sendResponse({ text: 'KBL1:' + k.concat(auto).join(',') })); return true; }
   if (msg.type === 'KB_PICK_START' && msg.tabId != null) { broadcast(msg.tabId, { type: 'KB_PICK_START' }); sendResponse({ ok: true }); return false; }
   if (msg.type === 'KB_PICK_DONE' && sender.tab) { broadcast(sender.tab.id, { type: 'KB_PICK_STOP' }); return false; }
