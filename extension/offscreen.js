@@ -8,7 +8,7 @@ const CORES = navigator.hardwareConcurrency || 4;
 const MEM = navigator.deviceMemory || 4; // GB (크롬은 최대 8로 표기)
 const MAX_WORKERS = CORES >= 8 && MEM >= 8 ? 3 : CORES >= 4 && MEM >= 4 ? 2 : 1;
 const IDLE_KILL_MS = 25000;
-const TARGET_W = 900;
+const TARGET_W = MAX_WORKERS === 1 ? 760 : 900; // 저사양은 해상도를 낮춰 속도 우선 (부족하면 2패스가 보완)
 
 const idle = [];
 const waiters = [];

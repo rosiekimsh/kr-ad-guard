@@ -66,9 +66,28 @@
     try { return new URL(m[2], document.baseURI).href; } catch (_) { return null; }
   }
 
+  // 이 요소가 '오늘 그만보기' 버튼이 있는 팝업 레이어 안에 있는가 (가까운 조상 몇 단계만 검사)
+  const todayCache = new WeakMap();
+  function inTodayPopup(el) {
+    let p = el.parentElement;
+    for (let n = 0; p && p !== document.body && n < 6; p = p.parentElement, n++) {
+      let v = todayCache.get(p);
+      if (!v) {
+        v = false;
+        if (/오늘/.test(p.textContent || '') && (p.textContent || '').length < 400) {
+          const b = findBtn(p, TODAY_RE, 14);
+          v = !!(b && inPopupLayer(p));
+        }
+        if (v) todayCache.set(p, v);
+      }
+      if (v) return true;
+    }
+    return false;
+  }
+
   function collectCandidates() {
     const list = [];
-    let relaxedN = 0;
+    let relaxedN = 0, popupN = 0;
     unlinked = [];
     const vw = window.innerWidth, vh = window.innerHeight;
     for (const img of document.images) {
@@ -83,6 +102,10 @@
         list.push({ el: img, anchor: a, src, w: r.width, h: r.height, alt: (img.alt || '') + ' ' + (img.title || ''), href: a.href });
       } else if (fillsFrame) {
         list.push({ el: img, anchor: img, src, w: r.width, h: r.height, alt: (img.alt || '') + ' ' + (img.title || ''), href: '' });
+      } else if (IS_TOP && r.width >= 150 && r.height >= 120 && popupN < 6 && inTodayPopup(img)) {
+        // '오늘 그만보기'가 달린 팝업 안의 큰 이미지: 세로형·정사각형이어도 OCR 대상 (광고 팝업이 대부분)
+        popupN++;
+        list.push({ el: img, anchor: a || img, src, w: r.width, h: r.height, alt: (img.alt || '') + ' ' + (img.title || ''), href: a ? a.href : '', popup: true });
       } else if (a && r.width >= 120 && r.height >= 50 && relaxedN < 30 && !bannerShape(r.width, r.height)) {
         // 배너 비율이 아닌 링크 이미지(300×250 등): OCR 없이 학습 목록(해시)과만 대조
         relaxedN++;
@@ -183,10 +206,58 @@
     pageCount++;
     applyHide(box, info);
     report();
+    if (IS_TOP) dismissPopupAround(box);
     if (!IS_TOP) { // 상위 프레임에게 이 iframe 자체를 숨기도록 요청 (남는 빈 공간 제거)
       try {
         chrome.runtime.sendMessage({ type: 'KB_FRAME_FLAGGED', url: location.href, w: window.innerWidth, h: window.innerHeight });
       } catch (_) {}
+    }
+  }
+
+  // ---------- 광고 팝업(레이어)의 '오늘 그만보기' 자동 클릭 ----------
+  // 광고로 판정해 숨긴 이미지가 팝업 안에 있을 때만 동작한다 (정상 팝업은 건드리지 않음).
+  const TODAY_RE = /^(오늘(하루)?(은|동안)?(그만|다시|더)?(보지않기|보지않음|보기안|그만보기|열지않기|열지않음|안보기|안볼래요?|닫기)|하루(동안)?(그만보기|보지않기|열지않기|안보기)|오늘하루)/;
+  const CLOSE_RE = /^(닫기|닫기[x×✕]?|close|[x×✕])$/i;
+  const dismissed = new WeakSet();
+  const normTxt = (el) => ((el.tagName === 'INPUT' ? el.value : el.textContent) || '').replace(/\s+/g, '');
+  const isShown = (el) => { if (!el.isConnected) return false; const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).display !== 'none'; };
+  function findBtn(root, re, maxLen) {
+    let found = null;
+    for (const el of root.querySelectorAll('a,button,span,label,div,p,li,em,strong,i,input[type=button],input[type=submit]')) {
+      if (el.closest('[data-kb-hidden]') && el.closest('[data-kb-hidden]') !== root) continue;
+      const t = normTxt(el);
+      if (!t || t.length > maxLen || !re.test(t)) continue;
+      found = el; // 문서 순서상 더 깊은(나중에 나온 자손) 요소가 덮어써서 가장 안쪽 요소가 선택됨
+    }
+    return found;
+  }
+  function inPopupLayer(el) {
+    for (let p = el, n = 0; p && p !== document.body && n < 12; p = p.parentElement, n++) {
+      const pos = getComputedStyle(p).position;
+      if (pos === 'fixed' || pos === 'absolute' || pos === 'sticky') return true;
+    }
+    return false;
+  }
+  function dismissPopupAround(box) {
+    if (cfg.autoPopup === false) return;
+    let root = box.parentElement;
+    for (let n = 0; root && root !== document.body && root !== document.documentElement && n < 8; root = root.parentElement, n++) {
+      const btn = findBtn(root, TODAY_RE, 14);
+      if (!btn) continue;
+      if (dismissed.has(root) || !inPopupLayer(root)) return;
+      const r = root.getBoundingClientRect();
+      if (r.width > window.innerWidth * 0.98 && r.height > window.innerHeight * 0.98) return; // 전체화면 래퍼는 건드리지 않음
+      dismissed.add(root);
+      try { (btn.closest('a,button,label') || btn).click(); } catch (_) {}
+      setTimeout(() => { // 체크박스형이면 닫기 버튼도 누르고, 그래도 남으면 팝업 자체를 숨긴다
+        if (!isShown(root)) return;
+        const cl = findBtn(root, CLOSE_RE, 4);
+        if (cl) { try { (cl.closest('a,button') || cl).click(); } catch (_) {} }
+        setTimeout(() => {
+          if (isShown(root) && !hidden.has(root)) { hidden.add(root); applyHide(root, 'popup'); }
+        }, 500);
+      }, 400);
+      return;
     }
   }
 
@@ -340,6 +411,7 @@
 
   // ---------- OCR 큐 ----------
   function pump() {
+    if (document.hidden) return; // 백그라운드 탭에서는 OCR을 쉬고, 탭이 보이면 이어서 처리
     while (inflight < MAX_INFLIGHT && queue.length) {
       const job = queue.shift();
       inflight++;
@@ -390,7 +462,7 @@
         continue;
       }
       const urlInfo = S.scoreUrlLike(`${c.href} ${c.alt} ${fileName(c.src)}`);
-      const pre = urlInfo.score + bonusOf(c) + pg.score;
+      const pre = urlInfo.score + bonusOf(c) + pg.score + (c.popup ? 2 : 0);
       // 구조 점수만으로 확정되면 거리와 상관없이 즉시 숨김(비용 0). 아니면 화면에서 먼 배너는 지연
       if (pre < TH() && distOf(c) > LAZY_RANGE * window.innerHeight) continue;
       const entry = {
@@ -408,12 +480,13 @@
       }
       if (ocrBudget <= 0) { entry.dec = 'SKIP(budget)'; budgetSkipped++; continue; }
       ocrBudget--;
-      queue.push({ c, pre, hard: urlInfo.score, entry, dist: distOf(c) });
+      queue.push({ c, pre, hard: urlInfo.score, entry, dist: c.popup ? -1 : distOf(c) });
     }
     queue.sort((a, b) => a.dist - b.dist); // 화면에 가까운 배너부터
     pump();
   }
 
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) pump(); });
   let timer = null;
   function scheduleScan() {
     clearTimeout(timer);

@@ -13,7 +13,7 @@ It reads the text inside banner images with **on-device OCR**, so it can catch b
 > The detection vocabulary is Korean (e.g. first-deposit bonus terms, Korean brand-style phrases), so it is designed for **Korean-language sites**.
 
 ## Install (1 minute, Chrome)
-1. Download `kr-ad-guard-v0.5.0.zip` from [**Releases**](../../releases/latest) and **unzip** it.
+1. Download `kr-ad-guard-v0.5.1.zip` from [**Releases**](../../releases/latest) and **unzip** it.
 2. Open `chrome://extensions` and turn on **Developer mode** (top right).
 3. Click **Load unpacked** and select the unzipped folder. Done!
 
