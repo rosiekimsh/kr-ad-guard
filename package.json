@@ -1,6 +1,6 @@
 {
   "name": "kr-ad-guard",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "description": "한국 사이트의 불법 도박 배너를 온디바이스 OCR로 숨기는 크롬 확장",
   "license": "MIT",

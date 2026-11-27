@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "도박배너 차단기 (KR Ad Guard)",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "한국 사이트의 불법 도박·카지노 배너를 구조 분석 + 온디바이스 OCR로 판별해 숨깁니다. 이미지·방문기록은 외부로 전송되지 않습니다.",
   "minimum_chrome_version": "109",
   "permissions": [

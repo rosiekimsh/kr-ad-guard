@@ -34,5 +34,14 @@ for (const [u, expectBlock] of url) { const r = S.scoreUrlLike(u); chk((r.score 
 chk(S.scorePage('공식 텔레그램 채널 — 최신 주소는 여기서 확인하세요! 입점문의').score === 3, 'page aggregator');
 chk(S.scorePage('고객센터 광고문의 입점문의 텔레그램 문의').score === 0, 'page shop footer');
 chk(S.scorePage('입점문의').score === 0, 'page 입점문의 only');
+// 신뢰 사이트(기본 제외): 대형 서비스·공공은 true, 블로그·카페 등 사용자 글 영역과 비슷한 이름은 false
+{
+  const assert = require('assert');
+  const S = require('../extension/scoring.js');
+  for (const h of ['www.naver.com', 'map.naver.com', 'www.google.com', 'news.go.kr']) assert.strictEqual(S.isTrustedHost(h), true, h);
+  for (const h of ['blog.naver.com', 'a.blog.naver.com', 'cafe.naver.com', 'evilgoogle.com', 'notnaver.com', '']) assert.strictEqual(S.isTrustedHost(h), false, h);
+  console.log('신뢰 사이트 테스트 통과');
+}
+
 console.log(fail ? `${fail} 실패` : '점수 단위 테스트 전부 통과');
 process.exit(fail ? 1 : 0);

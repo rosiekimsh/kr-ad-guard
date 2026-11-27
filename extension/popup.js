@@ -1,5 +1,5 @@
 const $ = (id) => document.getElementById(id);
-const DEFAULTS = { enabled: true, mode: 'balanced', debug: false, allow: [] };
+const DEFAULTS = { enabled: true, mode: 'balanced', debug: false, allow: [], forceOn: [] };
 
 async function main() {
   const cfg = { ...DEFAULTS, ...(await chrome.storage.sync.get(DEFAULTS)) };
@@ -10,8 +10,11 @@ async function main() {
   $('enabled').checked = cfg.enabled;
   $('mode').value = cfg.mode;
   $('debug').checked = cfg.debug;
-  $('site').checked = !cfg.allow.includes(host);
+  const trusted = KB_SCORING.isTrustedHost(host);
+  const on = (!trusted || (cfg.forceOn || []).includes(host)) && !cfg.allow.includes(host);
+  $('site').checked = on;
   $('site').disabled = !host;
+  if (trusted) document.querySelector('label[for="site"]').textContent = '이 사이트에서 사용 (신뢰 사이트: 기본 꺼짐)';
 
   const st = (await chrome.storage.local.get('kbStats')).kbStats || { total: 0 };
   $('total').textContent = st.total;
@@ -24,9 +27,14 @@ async function main() {
   $('mode').onchange = (e) => chrome.storage.sync.set({ mode: e.target.value });
   $('debug').onchange = (e) => chrome.storage.sync.set({ debug: e.target.checked });
   $('site').onchange = async (e) => {
-    const cur = (await chrome.storage.sync.get(DEFAULTS)).allow || [];
-    const next = e.target.checked ? cur.filter((h) => h !== host) : [...new Set([...cur, host])];
-    chrome.storage.sync.set({ allow: next });
+    const o = await chrome.storage.sync.get(DEFAULTS);
+    const rm = (l) => (l || []).filter((h) => h !== host);
+    const add = (l) => [...new Set([...(l || []), host])];
+    if (trusted) { // 신뢰 사이트: 켜면 forceOn에 추가, 끄면 제거
+      chrome.storage.sync.set({ forceOn: e.target.checked ? add(o.forceOn) : rm(o.forceOn), allow: rm(o.allow) });
+    } else {
+      chrome.storage.sync.set({ allow: e.target.checked ? rm(o.allow) : add(o.allow) });
+    }
   };
   $('report').onclick = async () => {
     $('msg').textContent = '리포트 생성 중…';

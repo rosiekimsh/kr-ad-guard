@@ -127,7 +127,23 @@
     return { score: Math.min(3, strong + weak), hits };
   }
 
-  const api = { scoreText, scoreUrlLike, scorePage, KEYWORDS };
+  // 신뢰할 수 있는 대형 서비스·공공·금융 사이트: 기본적으로 확장이 동작하지 않는다 (오탐·성능 부담 방지).
+  // 누구나 글을 올리는 곳(블로그·카페·지식인 등)은 스팸 광고가 올라올 수 있어 제외 대상이 아니다.
+  const TRUSTED = [
+    'google.com', 'google.co.kr', 'youtube.com', 'github.com', 'wikipedia.org', 'microsoft.com', 'apple.com', 'amazon.com',
+    'naver.com', 'kakao.com', 'kakaocorp.com', 'coupang.com', 'gmarket.co.kr', '11st.co.kr', 'auction.co.kr', 'ssg.com',
+    'samsung.com', 'lge.co.kr', 'toss.im', 'kbstar.com', 'shinhan.com', 'wooribank.com', 'hanabank.com', 'nhbank.com',
+    'gov.kr', 'go.kr', 'ac.kr',
+  ];
+  const UGC = ['blog.naver.com', 'm.blog.naver.com', 'cafe.naver.com', 'm.cafe.naver.com', 'post.naver.com', 'kin.naver.com', 'in.naver.com', 'cafe.daum.net', 'blog.daum.net'];
+  function isTrustedHost(host) {
+    const h = String(host || '').toLowerCase();
+    if (!h) return false;
+    if (UGC.some((u) => h === u || h.endsWith('.' + u))) return false;
+    return TRUSTED.some((d) => h === d || h.endsWith('.' + d));
+  }
+
+  const api = { scoreText, scoreUrlLike, scorePage, KEYWORDS, isTrustedHost };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.KB_SCORING = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

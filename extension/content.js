@@ -6,7 +6,7 @@
   if (!S) return;
   const IS_TOP = window.top === window;
 
-  const DEFAULTS = { enabled: true, mode: 'balanced', debug: false, allow: [] };
+  const DEFAULTS = { enabled: true, mode: 'balanced', debug: false, allow: [], forceOn: [] };
   const TH_BY_MODE = { conservative: 7, balanced: 5, aggressive: 4 };
   const MAX_OCR = IS_TOP ? 40 : 12;
   // 사양에 따라 동시 OCR 요청 수 조절 (offscreen.js의 워커 수 + 1로 파이프라인 유지)
@@ -29,7 +29,8 @@
   const queue = [];
 
   const TH = () => TH_BY_MODE[cfg.mode] || 5;
-  const active = () => cfg.enabled && !restored && !(cfg.allow || []).includes(location.hostname);
+  const TRUSTED_SITE = S.isTrustedHost(location.hostname);
+  const active = () => cfg.enabled && !restored && (!TRUSTED_SITE || (cfg.forceOn || []).includes(location.hostname)) && !(cfg.allow || []).includes(location.hostname);
 
   // ---------- 유틸 ----------
   function maskHost(h) {
@@ -56,6 +57,8 @@
   }
 
   // ---------- 후보 탐지 ----------
+  // 광고 슬롯 크기 iframe인가: 블로그 본문 같은 큰 프레임은 광고 슬롯으로 취급하지 않는다 (970x250, 300x600 등은 포함)
+  const adSlotSize = (w, h) => w * h <= 450000 && h <= 700 && w <= 1000;
   function bannerShape(w, h) {
     return w >= 180 && h >= 36 && h <= 260 && w / h >= 2.2 && w / h <= 14;
   }
@@ -97,7 +100,7 @@
       if (!src || src.startsWith('blob:')) continue;
       const a = img.closest('a[href]');
       // 하위 프레임: 프레임 전체를 거의 덮는 이미지는 광고 슬롯으로 간주(링크/비율 무관)
-      const fillsFrame = !IS_TOP && r.width * r.height >= 0.6 * vw * vh && r.width >= 200 && r.height >= 50;
+      const fillsFrame = !IS_TOP && adSlotSize(vw, vh) && r.width * r.height >= 0.6 * vw * vh && r.width >= 200 && r.height >= 50;
       if (a && (bannerShape(r.width, r.height) || fillsFrame)) {
         list.push({ el: img, anchor: a, src, w: r.width, h: r.height, alt: (img.alt || '') + ' ' + (img.title || ''), href: a.href });
       } else if (fillsFrame) {
@@ -207,7 +210,7 @@
     applyHide(box, info);
     report();
     if (IS_TOP) dismissPopupAround(box);
-    if (!IS_TOP) { // 상위 프레임에게 이 iframe 자체를 숨기도록 요청 (남는 빈 공간 제거)
+    if (!IS_TOP && adSlotSize(window.innerWidth, window.innerHeight)) { // 상위 프레임에게 이 iframe 자체를 숨기도록 요청 (남는 빈 공간 제거)
       try {
         chrome.runtime.sendMessage({ type: 'KB_FRAME_FLAGGED', url: location.href, w: window.innerWidth, h: window.innerHeight });
       } catch (_) {}
@@ -371,6 +374,7 @@
     });
     const f = sized.find((x) => x.src === msg.url) || (sized.length === 1 ? sized[0] : null);
     if (!f || hidden.has(f)) return;
+    if (!adSlotSize(msg.w, msg.h)) return; // 큰 프레임(본문 등)은 통째로 숨기지 않는다
     hidden.add(f);
     applyHide(f, 'frame');
   }

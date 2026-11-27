@@ -1,5 +1,5 @@
 // 서비스 워커: 오프스크린 OCR 중계 + 결과 캐시 + 뱃지/통계
-const DEFAULTS = { enabled: true, mode: 'balanced', debug: false, allow: [] };
+const DEFAULTS = { enabled: true, mode: 'balanced', debug: false, allow: [], forceOn: [] };
 
 importScripts('phash.js');
 const PH = self.KB_PHASH;
